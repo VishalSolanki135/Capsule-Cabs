@@ -9,8 +9,8 @@ import heroImage from "@/assets/hero-cab.jpg";
 const FEATURES = [
   {
     icon: <Clock className="h-6 w-6" />,
-    title: "24/7 Service",
-    description: "Book your ride anytime, anywhere with our round-the-clock service"
+    title: "All week Service",
+    description: "Book your ride anytime, anywhere with our all days week service"
   },
   {
     icon: <Shield className="h-6 w-6" />,
@@ -19,8 +19,8 @@ const FEATURES = [
   },
   {
     icon: <MapPin className="h-6 w-6" />,
-    title: "Choose Your Route",
-    description: "Select from multiple routes and time slots that work best for you"
+    title: "Choose Your Pick and Drop",
+    description: "Select from multiple pick and drop and time slots that work best for you"
   },
   {
     icon: <Star className="h-6 w-6" />,
@@ -62,7 +62,7 @@ const Index = () => {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-8">
                 <Badge variant="outline" className="w-fit">
-                  🚗 Premium Cab Booking Service
+                  Premium Cab Booking Service
                 </Badge>
                 <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
                   Book Your Perfect
@@ -85,7 +85,7 @@ const Index = () => {
                     </Button>
                   </Link>
                 </div>
-                <div className="flex items-center gap-8 pt-4">
+                {/* <div className="flex items-center gap-8 pt-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary">10K+</div>
                     <div className="text-sm text-muted-foreground">Happy Customers</div>
@@ -98,7 +98,7 @@ const Index = () => {
                     <div className="text-2xl font-bold text-primary">24/7</div>
                     <div className="text-sm text-muted-foreground">Support</div>
                   </div>
-                </div>
+                </div> */}
               </div>
               <div className="relative">
                 <div className="float-animation">
@@ -118,7 +118,7 @@ const Index = () => {
       <section className="py-20 bg-surface-elevated">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Why Choose CabBook?</h2>
+            <h2 className="text-4xl font-bold mb-4">Why Choose CapsuleCabs?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               We provide premium transportation services with features designed for your comfort and convenience
             </p>
@@ -175,13 +175,13 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Testimonials Section
       <section className="py-20 bg-surface-elevated">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">What Our Customers Say</h2>
             <p className="text-xl text-muted-foreground">
-              Join thousands of satisfied customers who trust CabBook
+              Join thousands of satisfied customers who trust CapsuleCabs
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -205,7 +205,7 @@ const Index = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* CTA Section */}
       <section className="py-20 hero-gradient text-white">
@@ -214,12 +214,19 @@ const Index = () => {
           <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
             Join thousands of satisfied customers and experience the best in class cab booking service
           </p>
-          <Link to="/booking">
-            <Button size="lg" variant="secondary" className="text-lg px-8">
-              <Users className="mr-2 h-5 w-5" />
-              Start Booking Now
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/booking">
+              <Button size="lg" variant="secondary" className="text-lg px-8">
+                <Users className="mr-2 h-5 w-5" />
+                Start Booking Now
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button size="lg" variant="outline" className="text-lg px-8 bg-white/20 border-white/30 text-white hover:bg-white/30">
+                Sign In
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -228,7 +235,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="font-bold text-lg mb-4">CabBook</h3>
+              <h3 className="font-bold text-lg mb-4">CapsuleCabs</h3>
               <p className="text-sm opacity-80">
                 Premium cab booking service providing safe, comfortable, and reliable transportation.
               </p>
@@ -262,7 +269,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-white/20 mt-8 pt-8 text-center text-sm opacity-80">
-            <p>&copy; 2024 CabBook. All rights reserved.</p>
+            <p>&copy; 2024 Capsule Cabs. All rights reserved.</p>
           </div>
         </div>
       </footer>

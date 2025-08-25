@@ -8,7 +8,7 @@ export const Navigation = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-bold text-xl">
           <Car className="h-6 w-6 text-primary" />
-          <span>CabBook</span>
+          <span>CapsuleCabs</span>
         </Link>
         
         <div className="hidden md:flex items-center gap-6">
@@ -24,13 +24,17 @@ export const Navigation = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
-            <User className="h-4 w-4 mr-2" />
-            Login
-          </Button>
-          <Button size="sm">
-            Sign Up
-          </Button>
+          <Link to="/login">
+            <Button variant="outline" size="sm">
+              <User className="h-4 w-4 mr-2" />
+              Login
+            </Button>
+          </Link>
+          <Link to="/signup">
+            <Button size="sm">
+              Sign Up
+            </Button>
+          </Link>
         </div>
       </div>
     </nav>
