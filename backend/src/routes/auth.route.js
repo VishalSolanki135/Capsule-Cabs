@@ -4,7 +4,8 @@ import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 
 import User from '../models/user.model.js';
-import { generateToken, generateRefreshToken, protect } from '../middleware/auth.middleware.js';
+import authMiddleware from '../middleware/auth.middleware.js';
+const { generateToken, generateRefreshToken, protect } = authMiddleware;
 import { ApiResponse } from '../utils/apiResponse.js';
 import { sendSMS } from '../services/notificationService.js';
 import { cacheService } from '../config/redis.js';

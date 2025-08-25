@@ -55,7 +55,7 @@ class Server {
   async initializeDatabase() {
     try {
       await connectDB();
-      await connectRedis();
+      // await connectRedis();
       info('Database connections established');
     } catch (error) {
       _error('Database connection failed:', error);

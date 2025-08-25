@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { protect } from '../middleware/auth.middleware.js';
+import authMiddleware from '../middleware/auth.middleware.js';
+const { protect } = authMiddleware;
 import { ApiResponse } from '../utils/apiResponse.js';
 
 const router = Router();
