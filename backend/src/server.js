@@ -22,7 +22,7 @@ import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 // Import routes
 import authRoutes from './routes/auth.route.js';
 import userRoutes from './routes/userRoutes.js';
-import routeRoutes from './routes/routeRoutes.js';
+import routeRoutes from './routes/circuit.route.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';

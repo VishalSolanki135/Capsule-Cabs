@@ -1,5 +1,5 @@
-const { cacheService } = require('../config/redis');
-const logger = require('../utils/logger');
+import { cacheService } from '../config/redis.js';
+import logger from '../utils/logger.js';
 
 // Distributed locking service using Redis
 class SeatLockingService {
@@ -83,7 +83,7 @@ class SeatLockingService {
       }
 
       try {
-        const SeatAvailability = require('../models/SeatAvailability');
+        const SeatAvailability = (await import('../models/seat.model.js')).default;
         
         // Get seat availability document
         let availability = await SeatAvailability.findOne({
@@ -93,7 +93,7 @@ class SeatLockingService {
 
         if (!availability) {
           // Initialize seat availability if not exists
-          const Route = require('../models/Route');
+          const Route = (await import('../models/route.model.js')).default;
           const route = await Route.findById(routeId);
           if (!route) {
             throw new Error('Route not found');
@@ -144,7 +144,7 @@ class SeatLockingService {
    */
   async releaseSeats(routeId, travelDate, seatNumbers, userId) {
     try {
-      const SeatAvailability = require('../models/SeatAvailability');
+      const SeatAvailability = (await import('../models/seat.model.js')).default;
       
       const availability = await SeatAvailability.findOne({
         routeId,
@@ -202,7 +202,7 @@ class SeatLockingService {
         throw new Error('No active seat locks found');
       }
 
-      const SeatAvailability = require('../models/SeatAvailability');
+      const SeatAvailability = (await import('../models/seat.model.js')).default;
       
       const availability = await SeatAvailability.findOne({
         routeId: lockInfo.routeId,
@@ -248,7 +248,7 @@ class SeatLockingService {
    */
   async cleanupExpiredLocks() {
     try {
-      const SeatAvailability = require('../models/SeatAvailability');
+      const SeatAvailability = (await import('../models/seat.model.js')).default;
       
       const result = await SeatAvailability.releaseExpiredLocks();
       
@@ -272,7 +272,7 @@ class SeatLockingService {
    */
   async getLockStatistics() {
     try {
-      const SeatAvailability = require('../models/SeatAvailability');
+      const SeatAvailability = (await import('../models/seat.model.js')).default;
       
       const stats = await SeatAvailability.aggregate([
         {
@@ -322,4 +322,4 @@ class SeatLockingService {
 // Singleton instance
 const seatLockingService = new SeatLockingService();
 
-module.exports = seatLockingService;
+export default seatLockingService;

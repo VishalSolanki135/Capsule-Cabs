@@ -10,6 +10,7 @@ import { ApiResponse } from '../utils/apiResponse.js';
 import { sendSMS } from '../services/notificationService.js';
 import { cacheService } from '../config/redis.js';
 import { info, error as _error } from '../utils/logger.js';
+import asyncHandler from 'express-async-handler';
 
 // Rate limiting for sensitive auth operations
 const authLimiter = rateLimit({
@@ -422,8 +423,68 @@ const changePassword = async (req, res) => {
     );
   }
 };
+/**
+ * @desc    Register new user via OTP verification
+ * @route   POST /api/v1/auth/register
+ * @access  Public
+ */
+const register = asyncHandler(async (req, res) => {
+  const { phone, firstName, lastName, email } = req.body;
+  // OTP verified earlier
+  let user = await User.findOne({ phone });
+  if (!user) {
+    user = await User.create({ phone, firstName, lastName, email, isVerified: true });
+  } else {
+    return res.status(409).json({
+      success: false,
+      message: 'User already exist with this phone number. Please login instead.',
+      errCode: 'USER _ALREADY_EXISTS'
+    });
+  }
+  // Generate tokens
+  const accessToken = generateToken(user);
+  const refreshToken = generateRefreshToken(user);
+  res.status(201).json({
+    success: true,
+    data: {
+      user: {
+        id: user._id,
+        phone: user.phone,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      },
+      accessToken,
+      refreshToken
+    }
+  });
+});
+/**
+ * @desc    Login user via OTP verification
+ * @route   POST /api/v1/auth/login
+ * @access  Public
+ */
+const login = asyncHandler(async (req, res) => {
+  const { phone } = req.body;
+  const user = await User.findOne({ phone });
+  if (!user) throw new Error('User not found, please register');
+  // Mark verified
+  user.isVerified = true;
+  await user.save({ validateBeforeSave: false });
+  // Generate tokens
+  const accessToken = generateToken(user);
+  const refreshToken = generateRefreshToken(user);
+  res.json({
+    success: true,
+    data: { accessToken, refreshToken }
+  });
+});
+
 
 // Routes
+router.post('/register', register);
+router.post('/login', login);
 router.post('/send-otp', otpLimiter, validateSendOTP, handleValidationErrors, sendOTP);
 router.post('/verify-otp', authLimiter, validateVerifyOTP, handleValidationErrors, verifyOTP);
 router.post('/refresh-token', refreshToken);

@@ -1,13 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const { body, param, query, validationResult } = require('express-validator');
+import express from 'express';
+import { body, param, query, validationResult } from 'express-validator';
+import Route from '../models/circuit.model.js';
+import SeatAvailability from '../models/seat.model.js';
+import authMiddleware from '../middleware/auth.middleware.js';
+const { protect, authorize, verifyRouteOwnership } = authMiddleware;
+import { ApiResponse } from '../utils/apiResponse.js';
+import { cacheService } from '../config/redis.js';
+import logger from '../utils/logger.js';
 
-const Route = require('../models/Route');
-const SeatAvailability = require('../models/SeatAvailability');
-const { protect, authorize, verifyRouteOwnership } = require('../middleware/authMiddleware');
-const { ApiResponse } = require('../utils/apiResponse');
-const { cacheService } = require('../config/redis');
-const logger = require('../utils/logger');
+const router = express.Router();
 
 // Validation middleware
 const handleValidationErrors = (req, res, next) => {
@@ -20,9 +21,11 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// @desc    Search routes
-// @route   GET /api/v1/routes/search
-// @access  Public
+/**
+ * @desc    Search routes
+ * @route   GET /api/v1/routes/search
+ * @access  Public
+ */
 const searchRoutes = async (req, res) => {
   try {
     const {
@@ -68,7 +71,6 @@ const searchRoutes = async (req, res) => {
     // Check route availability for specific travel date
     if (travelDate) {
       const dateObj = new Date(travelDate);
-      // This is a simplified check - in production, implement proper schedule validation
       searchQuery['schedule.validFrom'] = { $lte: dateObj };
       searchQuery['schedule.validUntil'] = { $gte: dateObj };
     }
@@ -157,9 +159,11 @@ const searchRoutes = async (req, res) => {
   }
 };
 
-// @desc    Get single route details
-// @route   GET /api/v1/routes/:id
-// @access  Public
+/**
+ * @desc    Get single route details
+ * @route   GET /api/v1/routes/:id
+ * @access  Public
+ */
 const getRoute = async (req, res) => {
   try {
     const { id } = req.params;
@@ -191,9 +195,11 @@ const getRoute = async (req, res) => {
   }
 };
 
-// @desc    Get seat availability for a route and date
-// @route   GET /api/v1/routes/:id/availability
-// @access  Public
+/**
+ * @desc    Get seat availability for a route and date
+ * @route   GET /api/v1/routes/:id/availability
+ * @access  Public
+ */
 const getSeatAvailability = async (req, res) => {
   try {
     const { id } = req.params;
@@ -262,9 +268,11 @@ const getSeatAvailability = async (req, res) => {
   }
 };
 
-// @desc    Create new route (Operator/Admin only)
-// @route   POST /api/v1/routes
-// @access  Private (Operator/Admin)
+/**
+ * @desc    Create new route (Operator/Admin only)
+ * @route   POST /api/v1/routes
+ * @access  Private (Operator/Admin)
+ */
 const createRoute = async (req, res) => {
   try {
     const routeData = {
@@ -310,9 +318,11 @@ const createRoute = async (req, res) => {
   }
 };
 
-// @desc    Update route (Operator/Admin only)
-// @route   PUT /api/v1/routes/:id
-// @access  Private (Operator/Admin)
+/**
+ * @desc    Update route (Operator/Admin only)
+ * @route   PUT /api/v1/routes/:id
+ * @access  Private (Operator/Admin)
+ */
 const updateRoute = async (req, res) => {
   try {
     const { id } = req.params;
@@ -357,9 +367,11 @@ const updateRoute = async (req, res) => {
   }
 };
 
-// @desc    Delete route (Admin only)
-// @route   DELETE /api/v1/routes/:id
-// @access  Private (Admin)
+/**
+ * @desc    Delete route (Admin only)
+ * @route   DELETE /api/v1/routes/:id
+ * @access  Private (Admin)
+ */
 const deleteRoute = async (req, res) => {
   try {
     const { id } = req.params;
@@ -373,7 +385,7 @@ const deleteRoute = async (req, res) => {
     }
 
     // Check if there are active bookings for this route
-    const Booking = require('../models/Booking');
+    const { default: Booking } = await import('../models/Booking.js');
     const activeBookings = await Booking.countDocuments({
       'route.routeId': id,
       status: { $in: ['confirmed', 'in-transit'] },
@@ -408,9 +420,11 @@ const deleteRoute = async (req, res) => {
   }
 };
 
-// @desc    Get routes by operator (Operator/Admin only)
-// @route   GET /api/v1/routes/my-routes
-// @access  Private (Operator/Admin)
+/**
+ * @desc    Get routes by operator (Operator/Admin only)
+ * @route   GET /api/v1/routes/my-routes
+ * @access  Private (Operator/Admin)
+ */
 const getMyRoutes = async (req, res) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
@@ -476,4 +490,4 @@ router.post('/', protect, authorize('operator', 'admin'), validateCreateRoute, h
 router.put('/:id', protect, authorize('operator', 'admin'), verifyRouteOwnership, updateRoute);
 router.delete('/:id', protect, authorize('admin'), deleteRoute);
 
-module.exports = router;
+export default router;

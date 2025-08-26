@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     res.status(500).json(ApiResponse.error('Failed to retrieve routes'));
   }
 });
-
+  
 // @desc    Get route by ID
 // @route   GET /api/v1/routes/:id
 // @access  Public

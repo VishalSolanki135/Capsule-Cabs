@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const seatAvailabilitySchema = new mongoose.Schema({
   routeId: {
@@ -270,4 +270,6 @@ seatAvailabilitySchema.statics.initializeForRoute = async function(routeId, trav
   return await availability.save();
 };
 
-export default _model('SeatAvailability', seatAvailabilitySchema);
+const SeatAvailability = mongoose.model('SeatAvailability', seatAvailabilitySchema);
+
+export default SeatAvailability;

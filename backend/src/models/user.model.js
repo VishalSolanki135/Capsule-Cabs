@@ -98,8 +98,8 @@ const userSchema = new Schema({
     default: Date.now
   },
   refreshToken: {
-    type: String,
-    select: false
+    token: { type: String },
+    expiresAt: { type: Date }
   },
   passwordResetToken: {
     type: String,
@@ -141,6 +141,7 @@ userSchema.index({ phone: 1 });
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
+userSchema.index({ refreshToken: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {

@@ -3,79 +3,89 @@ const { sign, verify } = jwt;
 import User from '../models/user.model.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { error as _error, debug } from '../utils/logger.js';
+import asyncHandler from 'express-async-handler';
 
 // Generate JWT Token
-const generateToken = (payload) => {
-  return sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
-  });
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE }
+  );
 };
 
-// Generate Refresh Token
-const generateRefreshToken = (payload) => {
-  return sign(payload, process.env.JWT_REFRESH_SECRET, {
+
+const generateAccessToken = user => jwt.sign({
+  id: user._id,
+  role: user.role
+}, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
+
+const generateRefreshToken = user => {
+  const token = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRE
   });
+  const expiresAt = new Date(Date.now() + parseDuration(process.env.JWT_REFRESH_EXPIRE));
+  user.refreshToken = { token, expiresAt };
+  user.save({ validateBeforeSave: false });
+  return token;
 };
 
 // Protect middleware - authenticate user
-const protect = async (req, res, next) => {
-  try {
-    let token;
-
-    // Check for token in headers
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
-
-    // Check if token exists
-    if (!token) {
-      return res.status(401).json(
-        ApiResponse.error('Not authorized to access this route', 401, 'NO_TOKEN')
-      );
-    }
-
-    try {
-      // Verify token
-      const decoded = verify(token, process.env.JWT_SECRET);
-
-      // Get user from database
-      const user = await User.findById(decoded.id).select('-password -refreshToken');
-
-      if (!user) {
-        return res.status(401).json(
-          ApiResponse.error('User not found', 401, 'USER_NOT_FOUND')
-        );
-      }
-
-      if (!user.isActive) {
-        return res.status(401).json(
-          ApiResponse.error('User account is deactivated', 401, 'ACCOUNT_DEACTIVATED')
-        );
-      }
-
-      req.user = user;
-      next();
-    } catch (error) {
-      _error('JWT verification failed:', error);
-      
-      if (error.name === 'TokenExpiredError') {
-        return res.status(401).json(
-          ApiResponse.error('Token expired', 401, 'TOKEN_EXPIRED')
-        );
-      }
-      
-      return res.status(401).json(
-        ApiResponse.error('Invalid token', 401, 'INVALID_TOKEN')
-      );
-    }
-  } catch (error) {
-    _error('Auth middleware error:', error);
-    return res.status(500).json(
-      ApiResponse.error('Server error in authentication', 500, 'AUTH_ERROR')
-    );
+const protect = asyncHandler(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res
+      .status(401)
+      .json({ success: false, message: 'Not authorized, token missing' });
   }
-};
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const { id } = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(id).select('-password -refreshToken.token');
+    next();
+  } catch (err) {const message =
+      err.name === 'TokenExpiredError'
+        ? 'Access token expired'
+        : 'Not authorized, token invalid';
+    return res.status(401).json({ success: false, message });
+  }
+});
+
+/**
+ * Convert duration string to milliseconds
+ * Examples:
+ *   "30d" -> 2592000000
+ *   "7d"  -> 604800000
+ *   "12h" -> 43200000
+ *   "15m" -> 900000
+ *   "45s" -> 45000
+ */
+function parseDuration(duration) {
+  if (typeof duration !== "string") {
+    throw new Error("Duration must be a string, e.g., '30d', '12h', '15m', '45s'");
+  }
+
+  const regex = /^(\d+)([dhms])$/i;
+  const match = duration.match(regex);
+
+  if (!match) {
+    throw new Error("Invalid duration format. Use number + unit (d/h/m/s)");
+  }
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+
+  const multipliers = {
+    d: 24 * 60 * 60 * 1000, // days
+    h: 60 * 60 * 1000,      // hours
+    m: 60 * 1000,           // minutes
+    s: 1000,                // seconds
+  };
+
+  return value * multipliers[unit];
+}
+
 
 // Role-based authorization middleware
 const authorize = (...roles) => {
@@ -210,7 +220,7 @@ const validateApiKey = (req, res, next) => {
 const verifyBookingOwnership = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
-    const Booking = require('../models/Booking');
+    const Booking = require('../models/booking.model.js');
     
     const booking = await Booking.findOne({ 
       bookingId,
@@ -237,7 +247,7 @@ const verifyBookingOwnership = async (req, res, next) => {
 const verifyRouteOwnership = async (req, res, next) => {
   try {
     const { routeId } = req.params;
-    const Route = require('../models/Route');
+    const Route = require('../models/circuit.model.js');
     
     const route = await Route.findById(routeId);
     
@@ -278,5 +288,6 @@ export default {
   requireVerification,
   validateApiKey,
   verifyBookingOwnership,
-  verifyRouteOwnership
+  verifyRouteOwnership,
+  generateAccessToken
 };

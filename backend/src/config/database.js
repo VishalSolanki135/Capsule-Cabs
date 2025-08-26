@@ -1,37 +1,33 @@
-import mongoose from 'mongoose';
-import logger from '../utils/logger.js';
+// backend/src/config/database.js
+import { connect } from 'mongoose';
+import { info, error as _error } from '../utils/logger.js';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_TEST_URI, {
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferCommands: false, // Disable mongoose buffering
-    });
+    const uri = process.env.MONGODB_TEST_URI;
+    if (!uri) throw new Error('MONGODB_URI not defined in .env');
 
-    // logger.info(`MongoDB Connected: ${conn.connection.host}`);
+    const options = {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      bufferCommands: false,
+      // Use new URL parser & unified topology
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    };
 
-    // Handle connection events
-    mongoose.connection.on('connected', () => {
-      logger.info('Mongoose connected to MongoDB');
-      const collection = mongoose.connection.db.listCollections().toArray();
-      console.log('Collections:', collection);
+    info(`Connecting to MongoDB at ${uri}`);
+    const conn = await connect(uri, options);
 
-    });
-
-    mongoose.connection.on('error', (err) => {
-      logger.error('Mongoose connection error:', err);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      logger.warn('Mongoose disconnected');
-    });
-
+    info(`Mongoose connected to MongoDB: ${conn.connection.host}`);
     return conn;
   } catch (error) {
-    logger.error('Database connection error:', error);
-    throw error;
+    console.log('Database connection error:', error.message);
+    if (error.name === 'MongoParseError') {
+      _error('Check that your URI includes a valid database name and credentials.');
+    }
+    process.exit(1);
   }
 };
 
