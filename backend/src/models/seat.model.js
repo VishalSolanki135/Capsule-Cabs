@@ -40,7 +40,7 @@ const seatAvailabilitySchema = new mongoose.Schema({
     },
     seatType: {
       type: String,
-      enum: ['window', 'aisle', 'middle'],
+      enum: ['window', 'aisle', 'middle', 'back-seats'],
       required: true
     }
   }],
@@ -113,11 +113,13 @@ seatAvailabilitySchema.methods.lockSeats = async function(seatNumbers, userId, l
 
 // Method to confirm booking (convert locked to booked)
 seatAvailabilitySchema.methods.confirmBooking = async function(seatNumbers, userId, bookingId) {
+  console.log('Seats Available: ', this.seatsAvailable);
   const lockedSeats = this.seatsAvailable.filter(
     s => seatNumbers.includes(s.seatNumber) && 
         s.status === 'locked' && 
         s.lockedBy.toString() === userId.toString()
   );
+  console.log('Locked Seats: ', lockedSeats);
   
   if (lockedSeats.length !== seatNumbers.length) {
     throw new Error('Some seats are not properly locked by this user');

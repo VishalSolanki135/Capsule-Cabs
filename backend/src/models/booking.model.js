@@ -4,7 +4,7 @@ const bookingSchema = new Schema({
   bookingId: {
     type: String,
     unique: true,
-    required: true
+    // required: true
   },
   user: {
     userId: {
@@ -354,6 +354,7 @@ bookingSchema.pre('save', async function(next) {
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
     const randomNum = Math.floor(100000 + Math.random() * 900000);
     this.bookingId = `SB${dateStr}${randomNum}`;
+    console.log('Booking ID: ', this.bookingId);
     
     // Ensure uniqueness
     const existingBooking = await this.constructor.findOne({ bookingId: this.bookingId });

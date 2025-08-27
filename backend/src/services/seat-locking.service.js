@@ -93,7 +93,7 @@ class SeatLockingService {
 
         if (!availability) {
           // Initialize seat availability if not exists
-          const Route = (await import('../models/route.model.js')).default;
+          const Route = (await import('../models/circuit.model.js')).default;
           const route = await Route.findById(routeId);
           if (!route) {
             throw new Error('Route not found');

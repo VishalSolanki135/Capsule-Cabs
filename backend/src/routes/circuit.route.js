@@ -471,7 +471,7 @@ const validateCreateRoute = [
   body('origin.location').notEmpty().withMessage('Origin location is required'),
   body('destination.city').notEmpty().withMessage('Destination city is required'),
   body('destination.location').notEmpty().withMessage('Destination location is required'),
-  body('vehicle.type').isIn(['bus', 'cab', 'mini-bus', 'luxury-bus', 'sleeper-bus']).withMessage('Invalid vehicle type'),
+  body('vehicle.vehicleType').isIn(['ertiga-cab']).withMessage('Invalid vehicle type'),
   body('vehicle.vehicleNumber').notEmpty().withMessage('Vehicle number is required'),
   body('seating.totalSeats').isInt({ min: 1 }).withMessage('Total seats must be at least 1'),
   body('pricing.baseFare').isNumeric().withMessage('Base fare must be a number')

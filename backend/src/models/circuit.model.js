@@ -65,8 +65,7 @@ const routeSchema = new Schema({
         required: true
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: true
+        type: [Number],
       },
       landmark: String,
       contactNumber: String
@@ -104,17 +103,16 @@ const routeSchema = new Schema({
         required: true
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: true
+        type: [Number],
       },
       landmark: String,
       contactNumber: String
     }]
   },
   vehicle: {
-    type: {
+    vehicleType: {
       type: String,
-      enum: ['bus', 'cab', 'mini-bus', 'luxury-bus', 'sleeper-bus'],
+      enum: ['ertiga-cab'],
       required: true
     },
     vehicleNumber: {
@@ -161,7 +159,7 @@ const routeSchema = new Schema({
       },
       type: {
         type: String,
-        enum: ['window', 'aisle', 'middle'],
+        enum: ['window', 'aisle', 'middle', 'back-seats'],
         required: true
       },
       position: {

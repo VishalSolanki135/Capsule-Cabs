@@ -6,28 +6,11 @@ let redisClient;
 const connectRedis = async () => {
   try {
     redisClient = redis.createClient({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: process.env.REDIS_PORT || 6379,
-      password: process.env.REDIS_PASSWORD || undefined,
-      retry_strategy: (options) => {
-        if (options.error && options.error.code === 'ECONNREFUSED') {
-          logger.error('The Redis server refused the connection');
-          return new Error('The Redis server refused the connection');
-        }
-        if (options.total_retry_time > 1000 * 60 * 60) {
-          logger.error('Redis retry time exhausted');
-          return new Error('Retry time exhausted');
-        }
-        if (options.attempt > 10) {
-          logger.error('Redis retry attempts exhausted');
-          return new Error('Retry attempts exhausted');
-        }
-        return Math.min(options.attempt * 100, 3000);
-      }
+      url: `redis://default:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
     });
 
     redisClient.on('connect', () => {
-      logger.info('Redis client connected');
+      logger.info('Redis client connecting...');
     });
 
     redisClient.on('ready', () => {
@@ -43,7 +26,7 @@ const connectRedis = async () => {
     });
 
     await redisClient.connect();
-    
+
     logger.info('Redis Connected Successfully');
     return redisClient;
   } catch (error) {
