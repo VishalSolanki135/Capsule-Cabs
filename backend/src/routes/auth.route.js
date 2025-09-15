@@ -429,11 +429,12 @@ const changePassword = async (req, res) => {
  * @access  Public
  */
 const register = asyncHandler(async (req, res) => {
-  const { phone, firstName, lastName, email } = req.body;
+  console.log('BODY: ', req?.body);
+  const { phone, firstName, lastName, email, password } = req.body;
   // OTP verified earlier
   let user = await User.findOne({ phone });
   if (!user) {
-    user = await User.create({ phone, firstName, lastName, email, isVerified: true });
+    user = await User.create({ phone, firstName, lastName, email, isVerified: true, password });
   } else {
     return res.status(409).json({
       success: false,
@@ -444,6 +445,7 @@ const register = asyncHandler(async (req, res) => {
   // Generate tokens
   const accessToken = generateToken(user);
   const refreshToken = generateRefreshToken(user);
+  console.log('Registered User: ', user);
   res.status(201).json({
     success: true,
     data: {

@@ -4,26 +4,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, Car } from "lucide-react";
+import { Phone, Lock, Eye, EyeOff, Car } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import React, { useState, useContext } from "react";
+import { AuthContext } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const { login } = useContext(AuthContext);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", { email, password });
+    try {
+      await login(phone, password);
+      window.location.href = "/";
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Login failed");
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      {/* Hero Section */}
       <section className="relative">
         <div className="hero-gradient-subtle min-h-[60vh] flex items-center">
           <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-16">
@@ -48,15 +52,15 @@ const Login = () => {
                 <CardContent className="px-4 sm:px-6 pb-6">
                   <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
+                      <Label htmlFor="phone">Phone Number</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                          id="email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          id="phone"
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
                           className="pl-10 h-11 sm:h-12 text-sm sm:text-base"
                           required
                         />
@@ -97,8 +101,8 @@ const Login = () => {
                           Remember me
                         </Label>
                       </div>
-                      <Link 
-                        to="/forgot-password" 
+                      <Link
+                        to="/forgot-password"
                         className="text-sm text-primary hover:text-primary-hover transition-smooth"
                       >
                         Forgot password?
@@ -112,8 +116,8 @@ const Login = () => {
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">
                         Don't have an account?{" "}
-                        <Link 
-                          to="/signup" 
+                        <Link
+                          to="/signup"
                           className="text-primary hover:text-primary-hover font-semibold transition-smooth"
                         >
                           Sign up here
@@ -123,24 +127,6 @@ const Login = () => {
                   </form>
                 </CardContent>
               </Card>
-
-              {/* Additional Info */}
-              {/* <div className="mt-6 sm:mt-8 text-center">
-                <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-primary">10K+</div>
-                    <div className="text-muted-foreground">Active Users</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-primary">4.9</div>
-                    <div className="text-muted-foreground">User Rating</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-primary">24/7</div>
-                    <div className="text-muted-foreground">Support</div>
-                  </div>
-                </div>
-              </div> */}
             </div>
           </div>
         </div>
@@ -149,4 +135,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;

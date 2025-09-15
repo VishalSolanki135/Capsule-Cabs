@@ -44,7 +44,7 @@ class Server {
       }
     });
     this.port = process.env.PORT || 5000;
-    
+
     this.initializeDatabase();
     this.initializeMiddlewares();
     this.initializeRoutes();
@@ -69,12 +69,22 @@ class Server {
       contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false
     }));
-    
+
     this.app.use(cors({
-      origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-      credentials: true
+      origin: 'http://localhost:8080',  // your React dev server URL
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    }));
+    // Enable CORS preflight for all routes
+    this.app.options('*', cors({
+      origin: 'http://localhost:8080',
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
     }));
 
+    this.app.use(express.json());
     // Rate limiting
     const limiter = rateLimit({
       windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000,

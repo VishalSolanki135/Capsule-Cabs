@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, Car, User, Phone } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Car, User, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import React, { useState, useContext } from "react";
+import { AuthContext } from "@/contexts/AuthContext";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -19,22 +20,36 @@ const Signup = () => {
     password: "",
     confirmPassword: ""
   });
+  const { register } = useContext(AuthContext);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle signup logic here
-    console.log("Signup attempt:", formData);
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    try {
+      await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password
+      });
+      window.location.href = "/";
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Registration failed");
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      {/* Hero Section */}
+
       <section className="relative">
         <div className="hero-gradient-subtle min-h-[60vh] flex items-center">
           <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-16">
@@ -45,7 +60,7 @@ const Signup = () => {
                   <h1 className="text-2xl sm:text-3xl font-bold">Join CapsuleCabs</h1>
                 </div>
                 <Badge variant="outline" className="w-fit text-xs sm:text-sm">
-                  🚗 Create your account and start booking rides
+                  Create your account and start booking rides
                 </Badge>
               </div>
 
@@ -178,17 +193,11 @@ const Signup = () => {
                       />
                       <Label htmlFor="terms" className="text-xs sm:text-sm leading-relaxed">
                         I agree to the{" "}
-                        <Link 
-                          to="/terms" 
-                          className="text-primary hover:text-primary-hover underline"
-                        >
+                        <Link to="/terms" className="text-primary hover:text-primary-hover underline">
                           Terms of Service
                         </Link>{" "}
                         and{" "}
-                        <Link 
-                          to="/privacy" 
-                          className="text-primary hover:text-primary-hover underline"
-                        >
+                        <Link to="/privacy" className="text-primary hover:text-primary-hover underline">
                           Privacy Policy
                         </Link>
                       </Label>
@@ -201,10 +210,7 @@ const Signup = () => {
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">
                         Already have an account?{" "}
-                        <Link 
-                          to="/login" 
-                          className="text-primary hover:text-primary-hover font-semibold transition-smooth"
-                        >
+                        <Link to="/login" className="text-primary hover:text-primary-hover font-semibold transition-smooth">
                           Sign in here
                         </Link>
                       </p>
@@ -213,9 +219,10 @@ const Signup = () => {
                 </CardContent>
               </Card>
 
-              {/* Benefits Section */}
               <div className="mt-6 sm:mt-8 text-center">
-                <h3 className="font-semibold mb-3 sm:mb-4 text-foreground text-base sm:text-lg">Why join CapsuleCabs?</h3>
+                <h3 className="font-semibold mb-3 sm:mb-4 text-foreground text-base sm:text-lg">
+                  Why join CapsuleCabs?
+                </h3>
                 <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div className="text-center">
                     <div className="text-lg font-bold text-primary">🚗</div>
@@ -239,4 +246,4 @@ const Signup = () => {
   );
 };
 
-export default Signup; 
+export default Signup;

@@ -145,6 +145,10 @@ userSchema.index({ refreshToken: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
+  console.log('🔍 Pre-save hook triggered');
+  console.log('🔍 Password modified:', this.isModified('password'));
+  console.log('🔍 Password value:', this.password);
+  console.log('🔍 Password type:', typeof this.password);
   if (!this.isModified('password')) {
     return next();
   }
