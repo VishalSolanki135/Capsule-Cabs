@@ -1,9 +1,20 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import api from '../services/api';
-import { setAccessToken, clearTokens } from '../services/authTokens';
+import { setAccessToken, clearTokens, getAccessToken } from '../services/authTokens';
+
+interface User {
+  id: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
 
 interface AuthContextType {
-  user: null | { id: string; phone: string; firstName: string };
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   login: (phone: string, password: string) => Promise<void>;
   register: (payload: {
     phone: string;
@@ -12,25 +23,45 @@ interface AuthContextType {
     email: string;
     password: string;
   }) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>(null!);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthContextType['user']>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Optionally fetch user profile if accessToken exists
+    const initializeAuth = async () => {
+      const token = getAccessToken();
+      if (token) {
+        try {
+          const { data } = await api.get('/users/profile');
+          setUser(data.data);
+          console.log('USER: ', data);
+        } catch (error) {
+          clearTokens();
+        }
+      }
+      setIsLoading(false);
+    }
+    initializeAuth();
   }, []);
 
   const login = async (phone: string, password: string) => {
-    const { data } = await api.post('/auth/login', { phone, password });
-    const { accessToken, refreshToken } = data.data;
+    const { data } = await api.post('/auth/login', {
+      phone,
+      password
+    });
+
+    console.log('DATA: ', data);
+    
+    const { accessToken, refreshToken, user: userData } = data.data;
     setAccessToken(accessToken);
     localStorage.setItem('refreshToken', refreshToken);
-    // Decode token or fetch profile
-    setUser({ id: '', phone, firstName: '' });
+    setUser(userData);
+    console.log('USER: ', user);
   };
 
   const register = async (payload: {
@@ -41,27 +72,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     password: string;
   }) => {
     const { data } = await api.post('/auth/register', payload);
-    const { accessToken, refreshToken } = data.data;
+    
+    const { accessToken, refreshToken, user: userData } = data.data;
     setAccessToken(accessToken);
     localStorage.setItem('refreshToken', refreshToken);
-    setUser({
-      id: data.data.user.id,
-      phone: data.data.user.phone,
-      firstName: data.data.user.firstName
-    });
+    setUser(userData);
   };
 
   const logout = async () => {
     try {
       await api.post('/auth/logout');
-    } catch {}
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    }
+    
     clearTokens();
     setUser(null);
+    
     window.location.href = '/login';
   };
 
+  const isAuthenticated = !!user;
+  console.log('Authenticated: ', isAuthenticated, user);
+
+  const value = useMemo(() => {
+    return {
+      user,
+      isAuthenticated,
+      isLoading,
+      login,
+      register,
+      logout
+    };
+  }, [user, isAuthenticated]);
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
