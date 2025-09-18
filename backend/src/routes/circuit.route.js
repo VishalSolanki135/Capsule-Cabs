@@ -428,21 +428,15 @@ const deleteRoute = async (req, res) => {
 const getMyRoutes = async (req, res) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
-    
-    const query = { 'operator.operatorId': req.user._id };
-    
-    if (status) {
-      query.status = status;
-    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const routes = await Route.find(query)
+    const routes = await Route.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    const totalRoutes = await Route.countDocuments(query);
+    const totalRoutes = routes.length;
 
     res.status(200).json(
       ApiResponse.success({
@@ -454,7 +448,7 @@ const getMyRoutes = async (req, res) => {
           hasNext: skip + routes.length < totalRoutes,
           hasPrev: parseInt(page) > 1
         }
-      }, 'Operator routes retrieved successfully')
+      }, 'Routes retrieved successfully')
     );
   } catch (error) {
     logger.error('Get my routes error:', error);
@@ -479,7 +473,7 @@ const validateCreateRoute = [
 
 // Routes
 router.get('/search', searchRoutes);
-router.get('/my-routes', protect, authorize('operator', 'admin'), getMyRoutes);
+router.get('/my-routes', protect, authorize('operator', 'admin', 'passenger'), getMyRoutes);
 router.get('/:id', getRoute);
 router.get('/:id/availability', [
   param('id').isMongoId().withMessage('Invalid route ID'),

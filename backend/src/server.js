@@ -35,11 +35,13 @@ import './jobs/scheduledJobs.js';
 
 class Server {
   constructor() {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:8080'];
     this.app = express();
     this.server = createServer(this.app);
     this.io = new SocketIOServer(this.server, {
       cors: {
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+        origin: allowedOrigins,
+        credentials: true,
         methods: ['GET', 'POST']
       }
     });
@@ -64,6 +66,11 @@ class Server {
   }
 
   initializeMiddlewares() {
+
+    const allowedOrigins = [
+      'http://localhost:8080',
+      'http://127.0.0.1:8080'
+    ];
     // Security middlewares
     this.app.use(helmet({
       contentSecurityPolicy: false,
@@ -71,18 +78,11 @@ class Server {
     }));
 
     this.app.use(cors({
-      origin: 'http://localhost:8080',  // your React dev server URL
+      origin: allowedOrigins,
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization']
     }));
-    // Enable CORS preflight for all routes
-    this.app.options('*', cors({
-      origin: 'http://localhost:8080',
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization']
-    }));
+    
+    this.app.options('*', cors());
 
     this.app.use(express.json());
     // Rate limiting
