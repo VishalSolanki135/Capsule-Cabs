@@ -5,6 +5,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Clock, MapPin, CreditCard, CheckCircle, User } from "lucide-react";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import api from "@/services/api";
 
 interface BookingStep {
@@ -23,6 +24,7 @@ interface SeatAvailability {
 
 interface CabWithAvailability {
   id: string;
+  routeCode: string;
   name: string;
   capacity: number;
   price: number;
@@ -49,7 +51,10 @@ const BOOKING_STEPS: BookingStep[] = [
   { id: 6, title: "Confirmation", icon: <CheckCircle className="h-4 w-4" />, completed: false },
 ];
 
-const TIME_SLOTS = ["6:00 AM", "6:00 PM"];
+const TIME_SLOTS_BY_ROUTE: Record<string, string[]> = {
+  "AGR-GUR-001": ["6:00 AM"],
+  "GUR-AGR-001": ["6:00 PM"],
+};
 
 export const BookingSteps = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -66,13 +71,14 @@ export const BookingSteps = () => {
         const routesRes = await api.get("/routes/my-routes");
         const routes = routesRes.data.data.routes;
 
-        const cabsWithAvailabilityPromises = routes.map(async (route: any) => {
+        const cabsWithAvailabilityPromises = routes.map(async (route) => {
           let seatsAvailable: SeatAvailability[] = [];
           let available = false;
-
+          console.log('Selected Date: ', selectedDate);
           if (selectedDate) {
-            const dateStr = selectedDate.toISOString().slice(0, 10);
+            const dateStr = format(selectedDate, "yyyy-MM-dd");
             try {
+              console.log('DATE STR: ', dateStr);
               const seatAvailRes = await api.get(
                 `/routes/${route._id}/availability?travelDate=${dateStr}`
               );
@@ -86,6 +92,7 @@ export const BookingSteps = () => {
 
           return {
             id: route._id,
+            routeCode: route.routeCode,
             name: route.vehicle?.type || "Cab",
             capacity: route.vehicle?.capacity || 6,
             price: route.pricing?.baseFare || 550,
@@ -105,6 +112,16 @@ export const BookingSteps = () => {
 
     fetchRoutesAndAvailability();
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (availableCabs.length > 0 && !selectedCab) {
+      // pick the first available cab
+      const firstAvailableCab = availableCabs.find(cab => cab.available);
+      if (firstAvailableCab) {
+        setSelectedCab(firstAvailableCab.id);
+      }
+    }
+  }, [availableCabs, selectedCab]);
 
   const nextStep = () => {
     if (currentStep === 3) {
@@ -136,6 +153,11 @@ export const BookingSteps = () => {
     }
   };
 
+  const selectedCabObj = availableCabs.find((cab) => cab.id === selectedCab);
+  const dynamicTimeSlots = selectedCabObj
+    ? TIME_SLOTS_BY_ROUTE[selectedCabObj.routeCode] || []
+    : [];
+  console.log('dynamic Time Slots: ', dynamicTimeSlots);
   const renderSeatLayout = () => {
     if (!selectedCab) return null;
 
@@ -143,12 +165,13 @@ export const BookingSteps = () => {
     if (!cab) return null;
 
     const seats = cab.seatsAvailable || [];
-
+    console.log('SEATS: ', seats);
     return (
       <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
         {seats.map((seat) => {
-          const isBooked = seat.status !== "available";
+          const isBooked = seat.status === "booked";
           const isSelected = selectedSeats.includes(seat.seatNumber);
+          const isLocked = seat.status === "locked";
           return (
             <button
               key={seat.seatNumber}
@@ -162,9 +185,9 @@ export const BookingSteps = () => {
                 }
               }}
               className={`p-4 rounded-lg border-2 transition-smooth font-semibold ${
-                isBooked ? "seat-booked" : isSelected ? "seat-selected" : "seat-available"
+                isBooked ? "seat-booked" : isSelected ? "seat-selected" : isLocked ? "seat-locked" : "seat-available"
               }`}
-              disabled={isBooked}
+              disabled={isBooked || isLocked}
             >
               {seat.seatNumber}
             </button>
@@ -179,13 +202,25 @@ export const BookingSteps = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-center">Select Your Travel Date</h3>
+            <h3 className="text-xl font-semibold text-center">
+              Select Your Travel Date
+            </h3>
             <div className="flex justify-center">
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={setSelectedDate}
-                disabled={(date) => date < new Date()}
+                onSelect={(date) => {
+                  if (date) {
+                    // force it to local midnight
+                    const localDate = new Date(
+                      date.getFullYear(),
+                      date.getMonth(),
+                      date.getDate()
+                    );
+                    setSelectedDate(localDate);
+                  }
+                }}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 className="rounded-md border"
               />
             </div>
@@ -234,16 +269,20 @@ export const BookingSteps = () => {
             <div className="space-y-4">
               <h4 className="font-semibold">Available Time Slots</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {TIME_SLOTS.map((time) => (
-                  <Button
-                    key={time}
-                    variant={selectedTime === time ? "default" : "outline"}
-                    onClick={() => setSelectedTime(time)}
-                    className="transition-smooth"
-                  >
-                    {time}
-                  </Button>
-                ))}
+                {dynamicTimeSlots.length > 0 ? (
+                  dynamicTimeSlots.map((time) => (
+                    <Button
+                      key={time}
+                      variant={selectedTime === time ? "default" : "outline"}
+                      onClick={() => setSelectedTime(time)}
+                      className="transition-smooth"
+                    >
+                      {time}
+                    </Button>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">Select route to get the time slots</p>
+                )}
               </div>
             </div>
           </div>
@@ -266,6 +305,10 @@ export const BookingSteps = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-primary rounded"></div>
                   <span>Selected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-locked rounded"></div>
+                  <span>Locked</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-destructive rounded"></div>
@@ -362,7 +405,7 @@ export const BookingSteps = () => {
                 </div>
               </CardContent>
             </Card>
-            <Button className="w-full" onClick={() => alert('Implement payment flow')}>
+            <Button className="w-full" onClick={() => alert("Implement payment flow")}>
               Proceed to Payment
             </Button>
           </div>

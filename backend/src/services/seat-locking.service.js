@@ -73,14 +73,14 @@ class SeatLockingService {
    * @param {number} lockDurationMinutes - Lock duration in minutes
    * @returns {Promise<Object>} - Lock result
    */
-  async lockSeats(routeId, travelDate, seatNumbers, userId, lockDurationMinutes = 15) {
+  async lockSeats(routeId, travelDate, seatNumbers, userId, lockDurationMinutes = 2) {
     try {
       // First acquire distributed lock for the booking operation
       const distributedLockAcquired = await this.acquireLock(routeId, travelDate, userId, 30); // 30 seconds for operation
       
       if (!distributedLockAcquired) {
         throw new Error('Could not acquire booking lock. Another user might be booking seats.');
-      }
+      }``
 
       try {
         const SeatAvailability = (await import('../models/seat.model.js')).default;

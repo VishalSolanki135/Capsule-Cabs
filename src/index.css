@@ -35,6 +35,9 @@
     --accent: 217 91% 95%;
     --accent-foreground: 217 91% 60%;
 
+    --locked: 39, 100%, 49%;
+    --locked-foreground: 0 0% 100%;
+
     /* Status colors */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -89,6 +92,9 @@
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
+
+    --locked: 39, 100%, 49%;
+    --locked-foreground: 215 20.2% 65.1%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
@@ -150,6 +156,18 @@
     animation: float 6s ease-in-out infinite;
   }
 
+  .bg-locked {
+    background-color: hsl(var(--locked));
+  }
+
+  .text-locked-foreground {
+    color: hsl(var(--locked-foreground));
+  }
+
+  .border-locked {
+    border-color: hsl(var(--locked));
+  }
+
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
@@ -166,5 +184,9 @@
   
   .seat-booked {
     @apply bg-destructive text-destructive-foreground cursor-not-allowed opacity-60;
+  }
+
+  .seat-locked {
+    @apply bg-locked text-locked-foreground border-locked;
   }
 }
