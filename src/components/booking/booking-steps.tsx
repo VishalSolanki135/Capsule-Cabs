@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Clock, MapPin, CreditCard, CheckCircle, User } from "lucide-react";
 import { format } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
 import api from "@/services/api";
+import { AuthContext } from "@/contexts/AuthContext";
 
 interface BookingStep {
   id: number;
@@ -64,32 +64,29 @@ export const BookingSteps = () => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [availableCabs, setAvailableCabs] = useState<CabWithAvailability[]>([]);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchRoutesAndAvailability = async () => {
       try {
         const routesRes = await api.get("/routes/my-routes");
         const routes = routesRes.data.data.routes;
-
         const cabsWithAvailabilityPromises = routes.map(async (route) => {
           let seatsAvailable: SeatAvailability[] = [];
           let available = false;
-          console.log('Selected Date: ', selectedDate);
           if (selectedDate) {
             const dateStr = format(selectedDate, "yyyy-MM-dd");
             try {
-              console.log('DATE STR: ', dateStr);
               const seatAvailRes = await api.get(
                 `/routes/${route._id}/availability?travelDate=${dateStr}`
               );
               seatsAvailable = seatAvailRes.data.data.seatsAvailable || [];
-              available = seatsAvailable.some((seat) => seat.status === "available");
+              available = seatsAvailable.some(seat => seat.status === "available");
             } catch {
               seatsAvailable = [];
               available = false;
             }
           }
-
           return {
             id: route._id,
             routeCode: route.routeCode,
@@ -102,73 +99,84 @@ export const BookingSteps = () => {
             seatsAvailable,
           };
         });
-
         const cabsWithAvailability = await Promise.all(cabsWithAvailabilityPromises);
         setAvailableCabs(cabsWithAvailability);
       } catch (error) {
         console.error("Failed to fetch route or availability data", error);
       }
     };
-
     fetchRoutesAndAvailability();
   }, [selectedDate]);
 
   useEffect(() => {
     if (availableCabs.length > 0 && !selectedCab) {
-      // pick the first available cab
       const firstAvailableCab = availableCabs.find(cab => cab.available);
-      if (firstAvailableCab) {
-        setSelectedCab(firstAvailableCab.id);
-      }
+      if (firstAvailableCab) setSelectedCab(firstAvailableCab.id);
     }
   }, [availableCabs, selectedCab]);
 
-  const nextStep = () => {
+  const lockSeats = async () => {
+    if (!selectedCab || !selectedDate || selectedSeats.length === 0) return;
+    const travelDateStr = format(selectedDate, "yyyy-MM-dd");
+    await api.post(
+      "/bookings/lock",
+      {
+        routeId: selectedCab,
+        travelDate: travelDateStr,
+        seatNumbers: selectedSeats,
+      }
+    );
+  };
+
+  const nextStep = async () => {
     if (currentStep === 3) {
-      const newPassengers: Passenger[] = selectedSeats.map((seatNum) => {
-        const existing = passengers.find((p) => p.seatNumber === seatNum);
-        return (
-          existing || {
-            name: "",
-            age: "",
-            gender: "",
-            seatNumber: seatNum,
-            fare:
-              availableCabs.find((cab) => cab.id === selectedCab)?.seatsAvailable.find(
-                (seat) => seat.seatNumber === seatNum
-              )?.price || 550,
-          }
+      try {
+        await lockSeats();
+        const newPassengers: Passenger[] = selectedSeats.map(seatNum => {
+          const existing = passengers.find(p => p.seatNumber === seatNum);
+          return (
+            existing || {
+              name: "",
+              age: "",
+              gender: "",
+              seatNumber: seatNum,
+              fare:
+                availableCabs.find(cab => cab.id === selectedCab)?.seatsAvailable.find(
+                  seat => seat.seatNumber === seatNum
+                )?.price || 550,
+            }
+          );
+        });
+        setPassengers(newPassengers);
+        setCurrentStep(prev => prev + 1);
+      } catch (err) {
+        alert(
+          err?.response?.data?.message ||
+            "Failed to lock seats. Please try again or select different seats."
         );
-      });
-      setPassengers(newPassengers);
-    }
-    if (currentStep < 6) {
-      setCurrentStep((prev) => prev + 1);
+      }
+    } else if (currentStep < 6) {
+      setCurrentStep(prev => prev + 1);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
-    }
+    if (currentStep > 1) setCurrentStep(prev => prev - 1);
   };
 
-  const selectedCabObj = availableCabs.find((cab) => cab.id === selectedCab);
+  const selectedCabObj = availableCabs.find(cab => cab.id === selectedCab);
   const dynamicTimeSlots = selectedCabObj
     ? TIME_SLOTS_BY_ROUTE[selectedCabObj.routeCode] || []
     : [];
-  console.log('dynamic Time Slots: ', dynamicTimeSlots);
+
   const renderSeatLayout = () => {
     if (!selectedCab) return null;
-
-    const cab = availableCabs.find((c) => c.id === selectedCab);
+    const cab = availableCabs.find(c => c.id === selectedCab);
     if (!cab) return null;
-
     const seats = cab.seatsAvailable || [];
-    console.log('SEATS: ', seats);
     return (
       <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
-        {seats.map((seat) => {
+        {seats.map(seat => {
           const isBooked = seat.status === "booked";
           const isSelected = selectedSeats.includes(seat.seatNumber);
           const isLocked = seat.status === "locked";
@@ -176,16 +184,22 @@ export const BookingSteps = () => {
             <button
               key={seat.seatNumber}
               onClick={() => {
-                if (!isBooked) {
-                  setSelectedSeats((prev) =>
+                if (!isBooked && !isLocked) {
+                  setSelectedSeats(prev =>
                     prev.includes(seat.seatNumber)
-                      ? prev.filter((s) => s !== seat.seatNumber)
+                      ? prev.filter(s => s !== seat.seatNumber)
                       : [...prev, seat.seatNumber]
                   );
                 }
               }}
               className={`p-4 rounded-lg border-2 transition-smooth font-semibold ${
-                isBooked ? "seat-booked" : isSelected ? "seat-selected" : isLocked ? "seat-locked" : "seat-available"
+                isBooked
+                  ? "seat-booked"
+                  : isSelected
+                  ? "seat-selected"
+                  : isLocked
+                  ? "seat-locked"
+                  : "seat-available"
               }`}
               disabled={isBooked || isLocked}
             >
@@ -209,9 +223,8 @@ export const BookingSteps = () => {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => {
+                onSelect={date => {
                   if (date) {
-                    // force it to local midnight
                     const localDate = new Date(
                       date.getFullYear(),
                       date.getMonth(),
@@ -220,7 +233,7 @@ export const BookingSteps = () => {
                     setSelectedDate(localDate);
                   }
                 }}
-                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                disabled={date => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 className="rounded-md border"
               />
             </div>
@@ -231,13 +244,12 @@ export const BookingSteps = () => {
             )}
           </div>
         );
-
       case 2:
         return (
           <div className="space-y-6">
             <h3 className="text-xl font-semibold text-center">Choose Your Cab & Time</h3>
             <div className="grid gap-4">
-              {availableCabs.map((cab) => (
+              {availableCabs.map(cab => (
                 <Card
                   key={cab.id}
                   className={`cursor-pointer transition-smooth ${
@@ -265,12 +277,11 @@ export const BookingSteps = () => {
                 </Card>
               ))}
             </div>
-
             <div className="space-y-4">
               <h4 className="font-semibold">Available Time Slots</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {dynamicTimeSlots.length > 0 ? (
-                  dynamicTimeSlots.map((time) => (
+                  dynamicTimeSlots.map(time => (
                     <Button
                       key={time}
                       variant={selectedTime === time ? "default" : "outline"}
@@ -287,7 +298,6 @@ export const BookingSteps = () => {
             </div>
           </div>
         );
-
       case 3:
         return (
           <div className="space-y-6">
@@ -318,7 +328,6 @@ export const BookingSteps = () => {
             </div>
           </div>
         );
-
       case 4:
         return (
           <div>
@@ -331,7 +340,7 @@ export const BookingSteps = () => {
                     type="text"
                     placeholder="Name"
                     value={passenger.name}
-                    onChange={(e) => {
+                    onChange={e => {
                       const newPax = [...passengers];
                       newPax[idx].name = e.target.value;
                       setPassengers(newPax);
@@ -343,7 +352,7 @@ export const BookingSteps = () => {
                     min={1}
                     placeholder="Age"
                     value={passenger.age}
-                    onChange={(e) => {
+                    onChange={e => {
                       const newPax = [...passengers];
                       newPax[idx].age = Number(e.target.value) || "";
                       setPassengers(newPax);
@@ -352,7 +361,7 @@ export const BookingSteps = () => {
                   />
                   <select
                     value={passenger.gender}
-                    onChange={(e) => {
+                    onChange={e => {
                       const newPax = [...passengers];
                       newPax[idx].gender = e.target.value;
                       setPassengers(newPax);
@@ -369,7 +378,7 @@ export const BookingSteps = () => {
             ))}
             <div className="text-center">
               <Button
-                disabled={passengers.some((p) => !p.name || !p.age || !p.gender)}
+                disabled={passengers.some(p => !p.name || !p.age || !p.gender)}
                 onClick={nextStep}
               >
                 Continue
@@ -377,7 +386,6 @@ export const BookingSteps = () => {
             </div>
           </div>
         );
-
       case 5:
         return (
           <div className="space-y-6">
@@ -389,7 +397,9 @@ export const BookingSteps = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span>Date:</span>
-                  <span>{selectedDate ? format(selectedDate, "PPP") : "Not selected"}</span>
+                  <span>
+                    {selectedDate ? format(selectedDate, "PPP") : "Not selected"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Time:</span>
@@ -397,7 +407,9 @@ export const BookingSteps = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Seats:</span>
-                  <span>{selectedSeats.join(", ") || "None selected"}</span>
+                  <span>
+                    {selectedSeats.join(", ") || "None selected"}
+                  </span>
                 </div>
                 <div className="flex justify-between font-semibold">
                   <span>Total:</span>
@@ -405,12 +417,11 @@ export const BookingSteps = () => {
                 </div>
               </CardContent>
             </Card>
-            <Button className="w-full" onClick={() => alert("Implement payment flow")}>
+            <Button className="w-full" onClick={() => alert("Payment flow not yet implemented")}>
               Proceed to Payment
             </Button>
           </div>
         );
-
       case 6:
         return (
           <div className="space-y-6 text-center">
@@ -435,7 +446,6 @@ export const BookingSteps = () => {
             <Button onClick={() => setCurrentStep(1)}>Book Another Ride</Button>
           </div>
         );
-
       default:
         return null;
     }
@@ -468,12 +478,10 @@ export const BookingSteps = () => {
           ))}
         </div>
       </div>
-
       {/* Step Content */}
       <Card className="max-w-2xl mx-auto">
         <CardContent className="p-8">{renderStepContent()}</CardContent>
       </Card>
-
       {/* Navigation Buttons */}
       <div className="flex justify-between max-w-2xl mx-auto">
         <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
@@ -486,7 +494,7 @@ export const BookingSteps = () => {
             (currentStep === 1 && !selectedDate) ||
             (currentStep === 2 && (!selectedCab || !selectedTime)) ||
             (currentStep === 3 && selectedSeats.length === 0) ||
-            (currentStep === 4 && passengers.some((p) => !p.name || !p.age || !p.gender))
+            (currentStep === 4 && passengers.some(p => !p.name || !p.age || !p.gender))
           }
         >
           {currentStep === 6 ? "Complete" : "Next"}
